@@ -14,20 +14,25 @@ func logError(r *http.Request, err error) {
 	)
 	slog.Error(err.Error(), "method", method, "uri", uri)
 }
-func errorResponse(w http.ResponseWriter, status int, message any) {
+func errorResponse(w http.ResponseWriter, r *http.Request, status int, message any) {
 	env := envlope{"error": message}
 	err := WriteJSON(w, env, status, nil)
 	if err != nil {
-
+		InternalServerError(w, r, err)
 	}
 
 }
 func UnsupportedMediaType(w http.ResponseWriter, r *http.Request) {
 	message := "Invalid or missing request headers"
-	errorResponse(w, http.StatusUnsupportedMediaType, message)
+	errorResponse(w, r, http.StatusUnsupportedMediaType, message)
 }
-func InternalServerError(w http.ResponseWriter, r *http.Request, status int, err error) {
+func BadRequest(w http.ResponseWriter, r *http.Request, err error) {
+	logError(r, err)
+	message := "Bad request, Please try again later"
+	errorResponse(w, r, http.StatusBadRequest, message)
+}
+func InternalServerError(w http.ResponseWriter, r *http.Request, err error) {
 	logError(r, err)
 	message := "Interval server error, Please try again later"
-	errorResponse(w, http.StatusInternalServerError, message)
+	errorResponse(w, r, http.StatusInternalServerError, message)
 }

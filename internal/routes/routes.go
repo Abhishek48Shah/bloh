@@ -9,6 +9,6 @@ import (
 
 func NewRoutes(pool *pgxpool.Pool) http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /login", login.HandleLogin(pool))
+	mux.HandleFunc("POST /v1/login", login.HandleLogin(pool))
 	return mux
 }
