@@ -13,7 +13,7 @@ func ReadJSON(w http.ResponseWriter, r *http.Request, maxBodySize int, dst any) 
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBodySize))
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
-	err := decoder.Decode(dst)
+	err := decoder.Decode(&dst)
 	if err != nil {
 		var unMarshalTypeErr *json.UnmarshalTypeError
 		var syntaxErr *json.SyntaxError
