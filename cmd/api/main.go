@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+
 	"github.com/Abhishek48Shah/blog/db"
 	"github.com/Abhishek48Shah/blog/internal/config"
 	"github.com/Abhishek48Shah/blog/internal/routes"
 	"github.com/joho/godotenv"
-	"log/slog"
-	"net/http"
-	"os"
 )
 
 type Config struct {
@@ -40,4 +41,5 @@ func main() {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
+	fmt.Println("hello world")
 }
