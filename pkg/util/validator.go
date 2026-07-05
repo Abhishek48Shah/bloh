@@ -4,8 +4,8 @@ type Validator struct {
 	Error map[string]string
 }
 
-func NewValidator() *Validator {
-	return &Validator{Error: map[string]string{}}
+func NewValidator() Validator {
+	return Validator{Error: map[string]string{}}
 }
 func (v *Validator) createError(key string, message string) {
 	if _, ok := v.Error[key]; !ok {
