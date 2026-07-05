@@ -19,7 +19,7 @@ var emailRex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]
 
 func SignupValidator(validator *util.Validator, payload SignupRequest) {
 	validator.Check("username", payload.Username != "", "username is required")
-	validator.Check("username", len(payload.Username) < 3, "username must be 3 or more character long")
+	validator.Check("username", len(payload.Username) >= 3, "username must be 3 or more character long")
 	validator.Check("email", payload.Email != "", "email is required")
 	validator.Check("email", emailRex.MatchString(payload.Email), "invalid email format")
 	validator.Check("password", payload.Password != "", "password is required")
