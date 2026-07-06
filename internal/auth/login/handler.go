@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Abhishek48Shah/blog/pkg/util"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -25,7 +26,7 @@ func HandleLogin(pool *pgxpool.Pool) http.HandlerFunc {
 			return
 		}
 		validator := util.NewValidator()
-		payloadValidation(validator, &payload)
+		payloadValidation(&validator, &payload)
 		if ok := validator.Ok(); !ok {
 			util.FailedValidationResponse(w, r, validator.Error)
 			return
@@ -36,10 +37,13 @@ func HandleLogin(pool *pgxpool.Pool) http.HandlerFunc {
 		if err != nil {
 
 			switch {
+			case errors.Is(err, pgx.ErrNoRows):
+				util.NotFoundError(w, r, err)
+				return
 			case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword):
 				util.UnauthorizedError(w, r, "invalid email or password")
+				return
 			}
-
 			util.InternalServerError(w, r, err)
 			return
 		}
