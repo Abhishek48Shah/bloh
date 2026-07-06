@@ -3,6 +3,8 @@ package util
 import (
 	"log/slog"
 	"net/http"
+
+	"golang.org/x/text/message"
 )
 
 type envlope map[string]any
@@ -40,4 +42,9 @@ func InternalServerError(w http.ResponseWriter, r *http.Request, err error) {
 }
 func UnauthorizedError(w http.ResponseWriter, r *http.Request, message string) {
 	errorResponse(w, r, http.StatusUnauthorized, message)
+}
+func NotFoundError(w http.ResponseWriter, r *http.Request, err error) {
+	logError(r, err)
+	message := "Not found"
+	errorResponse(w, r, http.StatusNotFound, message)
 }
