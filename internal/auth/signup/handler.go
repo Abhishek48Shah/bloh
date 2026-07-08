@@ -1,6 +1,8 @@
 package signup
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
