@@ -3,8 +3,6 @@ package util
 import (
 	"log/slog"
 	"net/http"
-
-	"golang.org/x/text/message"
 )
 
 type envlope map[string]any
