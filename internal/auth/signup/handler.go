@@ -1,16 +1,17 @@
 package signup
 
 import (
-	"context"
-	"errors"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/Abhishek48Shah/blog/pkg/util"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const maxBodySize = 1024
+const maxBodySize = 2048
 
 func HandleSignup(pool *pgxpool.Pool) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -33,18 +34,19 @@ func HandleSignup(pool *pgxpool.Pool) http.HandlerFunc {
 			return
 		}
 		ctx := r.Context()
-		userId, err := SignupService(pool, ctx, &input)
+		user, err := SignupService(pool, ctx, &input)
 		if err != nil {
-			switch {
-
-			}
 			util.InternalServerError(w, r, err)
 			return
 		}
-		err = util.WriteJSON(w, r, userId, nil)
+		buffer := make([]byte, 32)
+		rand.Read(buffer)
+		token := hex.EncodeToString(buffer)
+		err = SessionService(pool, ctx, token, user)
 		if err != nil {
+			slog.Error(err.Error())
 			util.InternalServerError(w, r, err)
+			return
 		}
 	})
-
 }
