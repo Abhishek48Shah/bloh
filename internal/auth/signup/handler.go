@@ -34,17 +34,8 @@ func HandleSignup(pool *pgxpool.Pool) http.HandlerFunc {
 			return
 		}
 		ctx := r.Context()
-		user, err := SignupService(pool, ctx, &input)
+		token, err := SignupService(pool, ctx, &input)
 		if err != nil {
-			util.InternalServerError(w, r, err)
-			return
-		}
-		buffer := make([]byte, 32)
-		rand.Read(buffer)
-		token := hex.EncodeToString(buffer)
-		err = SessionService(pool, ctx, token, user)
-		if err != nil {
-			slog.Error(err.Error())
 			util.InternalServerError(w, r, err)
 			return
 		}
