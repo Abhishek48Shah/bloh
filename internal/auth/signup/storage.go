@@ -2,8 +2,10 @@ package signup
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 )
 
 func CheckUser(pool *pgxpool.Pool, ctx context.Context, email string) (bool, error) {
@@ -17,14 +19,23 @@ func CheckUser(pool *pgxpool.Pool, ctx context.Context, email string) (bool, err
 	return exists, nil
 
 }
-func Create(pool *pgxpool.Pool, ctx context.Context, payload *SignupRequest) (int, error) {
+func Create(pool *pgxpool.Pool, ctx context.Context, payload *SignupRequest) (*User, error) {
 	ctxTimeout, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	query := `INSERT INTO users (username,email,password) VALUES ($1,$2,$3) RETURNING id`
-	var userId int
-	err := pool.QueryRow(ctxTimeout, query, payload.Password, payload.Email, payload.Password).Scan(&userId)
+	query := `INSERT INTO users (username,email,password) VALUES ($1,$2,$3) RETURNING id,role`
+	var user User
+	err := pool.QueryRow(ctxTimeout, query, payload.Username, payload.Email, payload.Password).Scan(&user.Id, &user.Role)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return userId, nil
+	return &user, nil
+}
+func StoreSession(redisClient *redis.Client, ctx context.Context, token string, user *User, expires_At time.Duration) error {
+	ctxTimeout, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	err := redisClient.Set(ctxTimeout, token, user, expires_At).Err()
+	if err != nil {
+		return err
+	}
+	return nil
 }
