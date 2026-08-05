@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Load(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, error) {
+func LoadPostgres(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, error) {
 	config, err := pgxpool.ParseConfig(cfg.DB.Dsn)
 	if err != nil {
 		return nil, err
