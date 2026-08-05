@@ -1,8 +1,10 @@
 package signup
 
 import (
-	"github.com/Abhishek48Shah/blog/pkg/util"
 	"regexp"
+	"time"
+
+	"github.com/Abhishek48Shah/blog/pkg/util"
 )
 
 type SignupRequest struct {
@@ -12,7 +14,12 @@ type SignupRequest struct {
 }
 
 type User struct {
-	Id string `json:"id"`
+	Id   int    `json:"id"`
+	Role string `json:"role"`
+}
+type Token struct {
+	Key       string
+	Expire_at time.Duration
 }
 
 var emailRex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
