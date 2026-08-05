@@ -1,19 +1,18 @@
 package signup
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
-	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/Abhishek48Shah/blog/pkg/util"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 )
 
 const maxBodySize = 2048
 
-func HandleSignup(pool *pgxpool.Pool) http.HandlerFunc {
+func HandleSignup(pool *pgxpool.Pool, redisClient *redis.Client) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var headerValue = r.Header.Get("Content-Type")
 		if headerValue != "application/json" {
@@ -34,10 +33,13 @@ func HandleSignup(pool *pgxpool.Pool) http.HandlerFunc {
 			return
 		}
 		ctx := r.Context()
-		token, err := SignupService(pool, ctx, &input)
+		token, err := SignupService(pool, redisClient, ctx, &input)
 		if err != nil {
 			util.InternalServerError(w, r, err)
 			return
 		}
+		cookie := &http.Cookie{Name: "Session", Value: token.Key, Domain: "localhost:4000", Expires: time.Now().Add(token.Expire_at)}
+		fmt.Fprintf(w, "%s", cookie)
+		util.WriteJSON(w, nil, 201, nil)
 	})
 }
