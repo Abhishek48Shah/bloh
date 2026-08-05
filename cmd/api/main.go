@@ -29,13 +29,14 @@ func main() {
 		os.Exit(1)
 	}
 	ctx := context.Background()
-	pool, err := db.Load(ctx, cfg)
+	postgresPool, err := db.LoadPostgres(ctx, cfg)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	slog.Info("database connection established", "port", pool.Config().ConnConfig.Port)
-	server := &http.Server{Addr: fmt.Sprintf(":%d", cfg.Port), Handler: routes.NewRoutes(pool)}
+	redisClient := db.LoadRedis()
+	slog.Info("database connection established", "port", postgresPool.Config().ConnConfig.Port)
+	server := &http.Server{Addr: fmt.Sprintf(":%d", cfg.Port), Handler: routes.NewRoutes(postgresPool, redisClient)}
 	slog.Info("server running", "port", server.Addr, "environment", cfg.Environment)
 	if err := server.ListenAndServe(); err != nil {
 		slog.Error(err.Error())
