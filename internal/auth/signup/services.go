@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Abhishek48Shah/blog/pkg/util"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
@@ -39,7 +40,11 @@ func SignupService(pool *pgxpool.Pool, redisClient *redis.Client, ctx context.Co
 	}
 	token := hex.EncodeToString(buff[:n])
 	expire_at := 7 * 24 * time.Hour
-	err = StoreSession(redisClient, ctx, token, user, expire_at)
+	userInfo, err := util.MarshalBinary(user)
+	if err != nil {
+		return nil, err
+	}
+	err = StoreSession(redisClient, ctx, token, userInfo, expire_at)
 	if err != nil {
 		return nil, err
 	}
