@@ -39,7 +39,7 @@ func HandleSignup(pool *pgxpool.Pool, redisClient *redis.Client) http.HandlerFun
 			return
 		}
 		cookie := &http.Cookie{Name: "Session", Value: token.Key, Domain: "localhost:4000", Expires: time.Now().Add(token.Expire_at)}
-		fmt.Fprintf(w, "%s", cookie)
+		http.SetCookie(w, cookie)
 		util.WriteJSON(w, nil, 201, nil)
 	})
 }
