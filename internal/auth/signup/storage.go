@@ -30,7 +30,7 @@ func Create(pool *pgxpool.Pool, ctx context.Context, payload *SignupRequest) (*U
 	}
 	return &user, nil
 }
-func StoreSession(redisClient *redis.Client, ctx context.Context, token string, user *User, expires_At time.Duration) error {
+func StoreSession(redisClient *redis.Client, ctx context.Context, token string, user []byte, expires_At time.Duration) error {
 	ctxTimeout, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	err := redisClient.Set(ctxTimeout, token, user, expires_At).Err()
