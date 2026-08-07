@@ -4,14 +4,15 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
-	"time"
-
-	"github.com/Abhishek48Shah/blog/pkg/util"
+	"encoding/json"
+	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
+	"time"
 )
+
+var ErrUserExit = errors.New("user already exist")
 
 func SignupService(pool *pgxpool.Pool, redisClient *redis.Client, ctx context.Context, payload *SignupRequest) (*Token, error) {
 	exists, err := CheckUser(pool, ctx, payload.Email)
@@ -19,7 +20,7 @@ func SignupService(pool *pgxpool.Pool, redisClient *redis.Client, ctx context.Co
 		return nil, err
 	}
 	if exists {
-		return nil, fmt.Errorf("user already exist with that email address")
+		return nil, ErrUserExit
 	}
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(payload.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -36,11 +37,11 @@ func SignupService(pool *pgxpool.Pool, redisClient *redis.Client, ctx context.Co
 		return nil, err
 	}
 	if n < 0 {
-		return nil, fmt.Errorf("Token is null")
+		return nil, errors.New("failed to generate token")
 	}
 	token := hex.EncodeToString(buff[:n])
 	expire_at := 7 * 24 * time.Hour
-	userInfo, err := util.MarshalBinary(user)
+	userInfo, err := json.Marshal(user)
 	if err != nil {
 		return nil, err
 	}
