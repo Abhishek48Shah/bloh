@@ -1,7 +1,7 @@
 package signup
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"time"
 
@@ -21,7 +21,6 @@ func HandleSignup(pool *pgxpool.Pool, redisClient *redis.Client) http.HandlerFun
 		}
 		var input SignupRequest
 		err := util.ReadJSON(w, r, maxBodySize, &input)
-		fmt.Println(input)
 		if err != nil {
 			util.BadRequest(w, r, err)
 			return
@@ -35,7 +34,12 @@ func HandleSignup(pool *pgxpool.Pool, redisClient *redis.Client) http.HandlerFun
 		ctx := r.Context()
 		token, err := SignupService(pool, redisClient, ctx, &input)
 		if err != nil {
-			util.InternalServerError(w, r, err)
+			switch {
+			case errors.Is(err, ErrUserExit):
+				util.ConfilctError(w, r, err)
+			default:
+				util.InternalServerError(w, r, err)
+			}
 			return
 		}
 		cookie := &http.Cookie{Name: "Session", Value: token.Key, Domain: "localhost:4000", Expires: time.Now().Add(token.Expire_at)}
