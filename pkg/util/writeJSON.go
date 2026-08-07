@@ -7,9 +7,6 @@ import (
 	"net/http"
 )
 
-func MarshalBinary(user) ([]byte, error) {
-	return json.Marshal(user)
-}
 func WriteJSON(w http.ResponseWriter, body any, status int, headers http.Header) error {
 	data, err := json.Marshal(body)
 	if err != nil {
