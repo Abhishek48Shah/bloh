@@ -2,6 +2,7 @@ package signup
 
 import (
 	"errors"
+	"mime"
 	"net/http"
 	"time"
 
@@ -14,13 +15,13 @@ const maxBodySize = 2048
 
 func HandleSignup(pool *pgxpool.Pool, redisClient *redis.Client) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var headerValue = r.Header.Get("Content-Type")
-		if headerValue != "application/json" {
+		memiType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+		if err != nil || memiType != "application/json" {
 			util.UnsupportedMediaType(w, r)
 			return
 		}
 		var input SignupRequest
-		err := util.ReadJSON(w, r, maxBodySize, &input)
+		err = util.ReadJSON(w, r, maxBodySize, &input)
 		if err != nil {
 			util.BadRequest(w, r, err)
 			return
