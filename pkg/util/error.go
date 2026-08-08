@@ -3,6 +3,8 @@ package util
 import (
 	"log/slog"
 	"net/http"
+	"os"
+	"runtime"
 )
 
 type envlope map[string]any
@@ -15,7 +17,10 @@ func logError(r *http.Request, err error) {
 		method = r.Method
 		uri    = r.URL.RequestURI()
 	)
-	slog.Error(err.Error(), "method", method, "uri", uri)
+	buf := make([]byte, 4096)
+	n := runtime.Stack(buf, false)
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger.Error(err.Error(), "method", method, "uri", uri, "stack", string(buf[:n]))
 }
 func errorResponse(w http.ResponseWriter, r *http.Request, status int, message any) {
 	env := envlope{"error": message}
@@ -45,4 +50,8 @@ func NotFoundError(w http.ResponseWriter, r *http.Request, err error) {
 	logError(r, err)
 	message := "Not found"
 	errorResponse(w, r, http.StatusNotFound, message)
+}
+func ConfilctError(w http.ResponseWriter, r *http.Request, err error) {
+	logError(r, err)
+	errorResponse(w, r, http.StatusConflict, err)
 }
