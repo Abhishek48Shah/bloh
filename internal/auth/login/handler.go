@@ -15,7 +15,7 @@ import (
 
 const MaxBodySize = 1024
 
-func HandleLogin(pool *pgxpool.Pool, redisClient *redis.Client) http.HandlerFunc {
+func HandleLogin(pool *pgxpool.Pool, cache *redis.Client) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 		if err != nil || mediaType != "application/json" {
@@ -35,7 +35,7 @@ func HandleLogin(pool *pgxpool.Pool, redisClient *redis.Client) http.HandlerFunc
 			return
 		}
 		ctx := r.Context()
-		token, err := LoginService(ctx, pool, redisClient, payload.Email, payload.Password)
+		token, err := LoginService(ctx, pool, cache, payload.Email, payload.Password)
 		if err != nil {
 			switch {
 			case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword), errors.Is(err, pgx.ErrNoRows):
@@ -47,7 +47,9 @@ func HandleLogin(pool *pgxpool.Pool, redisClient *redis.Client) http.HandlerFunc
 		}
 		session := http.Cookie{Name: "Session", Value: token.Key, Expires: time.Now().Add(token.ExpireAt)}
 		http.SetCookie(w, &session)
-		err = util.WriteJSON(w, "login successfull", http.StatusOK, nil)
+		headers := make(http.Header)
+		headers.Set("Cache-Controll", "no-store")
+		err = util.WriteJSON(w, "login successfull", http.StatusOK, headers)
 		if err != nil {
 			util.InternalServerError(w, r, err)
 			return
