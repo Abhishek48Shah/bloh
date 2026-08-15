@@ -10,6 +10,7 @@ import (
 	"github.com/Abhishek48Shah/blog/db"
 	"github.com/Abhishek48Shah/blog/internal/config"
 	"github.com/Abhishek48Shah/blog/internal/routes"
+	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 )
 
@@ -39,9 +40,10 @@ func main() {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
+	validator := validator.New()
 	slog.Info("database connection established", "port", postgresPool.Config().ConnConfig.Port)
 	slog.Info("cache connection established", "port", 6379)
-	server := &http.Server{Addr: fmt.Sprintf(":%d", cfg.Port), Handler: routes.NewRoutes(postgresPool, cache)}
+	server := &http.Server{Addr: fmt.Sprintf(":%d", cfg.Port), Handler: routes.NewRoutes(postgresPool, cache, validator)}
 	slog.Info("server running", "port", server.Addr, "environment", cfg.Environment)
 	if err := server.ListenAndServe(); err != nil {
 		slog.Error(err.Error())
