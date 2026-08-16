@@ -39,11 +39,14 @@ func BadRequest(w http.ResponseWriter, r *http.Request, err error) {
 	errorResponse(w, r, http.StatusBadRequest, message)
 }
 func InternalServerError(w http.ResponseWriter, r *http.Request, err error) {
-	logError(r, err)
+	if err != nil {
+		logError(r, err)
+	}
 	message := "Interval server error, Please try again later"
 	errorResponse(w, r, http.StatusInternalServerError, message)
 }
-func UnauthorizedError(w http.ResponseWriter, r *http.Request, message string) {
+func UnauthorizedError(w http.ResponseWriter, r *http.Request, err error, message string) {
+	logError(r, err)
 	errorResponse(w, r, http.StatusUnauthorized, message)
 }
 func NotFoundError(w http.ResponseWriter, r *http.Request, err error) {
