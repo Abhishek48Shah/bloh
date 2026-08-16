@@ -23,6 +23,6 @@ func NewRoutes(pool *pgxpool.Pool, cache *redis.Client, validator *validator.Val
 	blogService := blog.NewBlogServices(blogSorage)
 	blogHandler := blog.NewBlogHandlers(blogService, validator)
 	mux.HandleFunc("GET /v1/blog/{id}", blogHandler.GetSingleBlog)
-	mux.Handle("POST /blog", middleware.VerifyAuth(http.HandlerFunc(blogHandler.CreateBlog), cache))
+	mux.Handle("POST /v1/blog", middleware.VerifyAuth(http.HandlerFunc(blogHandler.CreateBlog), cache))
 	return middleware.RecoverPanic(middleware.CorsMiddleware(mux))
 }
