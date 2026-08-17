@@ -7,15 +7,20 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Abhishek48Shah/blog/internal/middleware"
 	"github.com/Abhishek48Shah/blog/pkg/util"
+	"github.com/go-playground/validator/v10"
 )
 
 type BlogHandler struct {
-	services *BlogServices
+	services  *BlogServices
+	validator *validator.Validate
 }
 
-func NewBlogHandlers(services *BlogServices) *BlogHandler {
-	return &BlogHandler{services: services}
+const maxBodySize = 1024
+
+func NewBlogHandlers(services *BlogServices, validator *validator.Validate) *BlogHandler {
+	return &BlogHandler{services: services, validator: validator}
 }
 func (h *BlogHandler) GetSingleBlog(w http.ResponseWriter, r *http.Request) {
 	blogID := r.PathValue("id")
@@ -50,5 +55,29 @@ func (h *BlogHandler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 	if err != nil || mediaType != "application/json" {
 		util.UnsupportedMediaType(w, r)
 		return
+	}
+	ctx := r.Context()
+	userID, ok := middleware.GetUserId(ctx)
+	if !ok {
+		util.UnauthorizedError(w, r, fmt.Errorf("internal/blog/handler: user ID not found in context"), "unauthroized access")
+		return
+	}
+	var userInput *UserInput
+	err = util.ReadJSON(w, r, maxBodySize, &userInput)
+	if err != nil {
+		util.BadRequest(w, r, err)
+		return
+	}
+	err = h.validator.Struct(userInput)
+	if err != nil {
+		return
+	}
+	err = h.services.CreateBlog(ctx, userID, userInput)
+	if err != nil {
+		return
+	}
+	err = util.WriteJSON(w, "blog created successfully", http.StatusCreated, nil)
+	if err != nil {
+		util.InternalServerError(w, r, err)
 	}
 }
