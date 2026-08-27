@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/Abhishek48Shah/blog/internal/auth"
 	"github.com/Abhishek48Shah/blog/internal/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -11,6 +12,9 @@ import (
 
 func Handler(pool *pgxpool.Pool, cache *redis.Client, logger *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
-
+	authStorage := auth.NewAuthStorage(pool, cache)
+	authService := auth.NewAuthSerive(authStorage)
+	authHandler := auth.NewAuthHandler(authService, logger)
+	mux.HandleFunc("POST /v1/login", authHandler.LoginHandler)
 	return middleware.HandlePanic(mux)
 }
