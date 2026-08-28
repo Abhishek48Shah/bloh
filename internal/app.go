@@ -39,7 +39,7 @@ func Run() {
 	server := &http.Server{Addr: fmt.Sprintf(":%d", cfg.Port), Handler: api.Handler(pool, cache, logger)}
 	logger.Info("database connection established", "port", pool.Config().ConnConfig.Port)
 	logger.Info("cache connected", "port", 6397)
-	logger.Info("server running ")
+	logger.Info("server running ", "port", server.Addr)
 	err = server.ListenAndServe()
 	logger.Error("failed to run server", "error", err)
 	defer pool.Close()
