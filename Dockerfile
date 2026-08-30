@@ -1,7 +1,5 @@
 FROM golang:1.27
 WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod tidy
 COPY . .
-RUN go build -o server .
+RUN go build -o server ./cmd/api/
 CMD ["./server"]
