@@ -10,6 +10,7 @@ import (
 	"github.com/Abhishek48Shah/blog/internal/api"
 	"github.com/Abhishek48Shah/blog/internal/config"
 	"github.com/Abhishek48Shah/blog/internal/database"
+	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 )
 
@@ -36,7 +37,8 @@ func Run() {
 		logger.Error("faile to load redis", "error", err.Error())
 		os.Exit(1)
 	}
-	server := &http.Server{Addr: fmt.Sprintf(":%d", cfg.Port), Handler: api.Handler(pool, cache, logger)}
+	validator := validator.New()
+	server := &http.Server{Addr: fmt.Sprintf(":%d", cfg.Port), Handler: api.Handler(pool, cache, logger, validator)}
 	logger.Info("database connection established", "port", pool.Config().ConnConfig.Port)
 	logger.Info("cache connected", "port", 6397)
 	logger.Info("server running ", "port", server.Addr)
