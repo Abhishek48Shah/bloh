@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -32,44 +31,42 @@ var BadRequestErr = errors.New("invalid input formate")
 func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
-		fmt.Println(err)
+		util.WriteError(w, r, util.BadRequestErr("malformed header", err), h.logger)
 		return
 	}
 	if mediaType != "application/json" {
-		http.Error(w, "unsupported media type", http.StatusUnsupportedMediaType)
+		fmt.Println("hello error")
+		util.WriteError(w, r, util.UnsupportedMediaTypeErr("malformed header", nil), h.logger)
 		return
 	}
 	input := LoginInput{}
 	err = util.ReadJSON(w, r, LoginMaxBodySize, &input)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		util.WriteError(w, r, util.BadRequestErr(err.Error(), err), h.logger)
 		return
 	}
 	err = h.validate.Struct(input)
 	if err != nil {
 		validationErr := make(map[string]string)
-
 		for _, err := range err.(validator.ValidationErrors) {
-			fmt.Println(err.Field() + " " + err.Tag())
+			fmt.Println(err.Tag())
 			switch err.Field() {
 			case "required":
-				fmt.Println(err.Tag())
-				fmt.Println(err.Field())
-				validationErr[err.Field()] = fmt.Sprintf("%s is required", err.Field())
+				validationErr[err.Field()] = fmt.Sprintf("%s is required,err.Field()")
 			case "Email":
-				validationErr[err.Field()] = fmt.Sprintf("%s must be valid email", err.Field())
+				validationErr[err.Field()] = fmt.Sprint("email must be valid")
 			case "Password":
-				validationErr[err.Field()] = fmt.Sprintf("password must be eight character long or greater")
+				validationErr[err.Field()] = fmt.Sprint("password must be eight character long or greater")
 			}
 		}
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(validationErr)
+		errMessage := util.ValidationErr(validationErr)
+		util.WriteError(w, r, errMessage, h.logger)
 		return
 	}
-	ctx := r.Context()
-	_, err = h.service.GetByEmail(ctx, &input)
+	_, err = h.service.GetByEmail(r.Context(), &input)
 	if err != nil {
-		fmt.Println(err)
+		util.WriteError(w, r, err, h.logger)
+		return
 	}
 
 }
