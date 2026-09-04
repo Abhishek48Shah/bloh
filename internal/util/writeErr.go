@@ -2,43 +2,57 @@ package util
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 )
 
 type ApiError struct {
-	Status   int
-	Message  string
-	Err      error
-	metadata map[string]string
+	status  int
+	message any
+	err     error
 }
 
-func (e *ApiError) error() string {
-	return e.Message
+func (e *ApiError) Error() string {
+	return fmt.Sprintf("%s", e.message)
 }
 
-type envlope map[string]string
+type envelope map[string]any
 
 func WriteError(w http.ResponseWriter, r *http.Request, err error, logger *slog.Logger) {
 	var apiErr *ApiError
 	logger.Error("")
 	if errors.As(err, &apiErr) {
-		logger.Error("api", "error", apiErr.Err, "method", r.Method, "uri", r.RequestURI)
-		env := envlope{"error": apiErr.Message}
-		WriteJson(w, env, apiErr.Status, nil)
+		logger.Error("api", "error", apiErr.err, "method", r.Method, "uri", r.RequestURI)
+		env := envelope{"error": apiErr.message}
+		if err := WriteJson(w, env, apiErr.status, nil); err != nil {
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+		}
 		return
 	}
-	WriteJson(w, envlope{"error": "Internal server error"}, http.StatusInternalServerError, nil)
+	http.Error(w, "internal server error", http.StatusInternalServerError)
 }
-func BadRequestErr(Message string, Err error) *ApiError {
-	return &ApiError{Status: http.StatusBadRequest, Message: Message, Err: Err}
+func BadRequestErr(message string, err error) *ApiError {
+	return &ApiError{status: http.StatusBadRequest, message: message, err: err}
+}
+func TimeoutErr(message string, err error) *ApiError {
+	return &ApiError{status: http.StatusGatewayTimeout, message: message, err: err}
+
+}
+func InternalServerErr(message string, err error) *ApiError {
+	return &ApiError{status: http.StatusInternalServerError, message: message, err: err}
+}
+func NotFounErr(message string, err error) *ApiError {
+	return &ApiError{status: http.StatusNotFound, message: message, err: err}
 }
 func ValidationErr(message map[string]string) *ApiError {
-	return &ApiError{Status: http.StatusUnprocessableEntity, Message: message, Err: nil}
+	fmt.Println(message)
+	return &ApiError{status: http.StatusUnprocessableEntity, message: message, err: nil}
 }
-func TimeoutErr(message string, Err error) *ApiError {
-	return &ApiError{Status: http.StatusGatewayTimeout, Message: message, Err: nil}
+func UnsupportedMediaTypeErr(message string, err error) *ApiError {
+
+	return &ApiError{status: http.StatusUnsupportedMediaType, message: message, err: nil}
 }
-func NotFoundErr(message string, Err error) *ApiError {
-	return &ApiError{Status: http.StatusNotFound, Message: message, Err: Err}
+func UnauthorizedErr(message string, err error) *ApiError {
+	return &ApiError{status: http.StatusUnauthorized, message: message, err: err}
 }
