@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -13,6 +14,7 @@ import (
 
 func Handler(pool *pgxpool.Pool, cache *redis.Client, logger *slog.Logger, validator *validator.Validate) http.Handler {
 	mux := http.NewServeMux()
+	fmt.Printf("pool nil=%v\n", pool == nil)
 	authStorage := auth.NewAuthStorage(pool, cache)
 	authService := auth.NewAuthService(authStorage)
 	authHandler := auth.NewAuthHandler(authService, logger, validator)
