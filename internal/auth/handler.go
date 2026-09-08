@@ -72,13 +72,13 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (h *AuthHandler) SignupHandler(w http.ResponseWriter, r *http.Request) {
-	mediaType, _, err := mime.ParseMediaType("Content-Type")
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
 		util.WriteError(w, r, util.BadRequestErr("malformed header", err), h.logger)
 		return
 	}
 	if mediaType != "application/json" {
-		util.WriteError(w, r, util.UnsupportedMediaTypeErr("malformed header", nil), h.logger)
+		util.WriteError(w, r, util.UnsupportedMediaTypeErr("malformed header", fmt.Errorf("malformd headers: %s", mediaType)), h.logger)
 		return
 	}
 	var input SignupInput
