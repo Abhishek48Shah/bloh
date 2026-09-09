@@ -8,9 +8,9 @@ import (
 
 func Redis(ctx context.Context, cfg *config.Config) (*redis.Client, error) {
 	rdb := redis.NewClient(&redis.Options{Addr: cfg.Redis.Adder, DB: cfg.Redis.DB, Password: cfg.Redis.Password})
-	_, err := rdb.Ping(ctx).Result()
-	if err != nil {
-		return nil, err
+	cmd := rdb.Ping(ctx)
+	if cmd.Err() != nil {
+		return nil, cmd.Err()
 	}
 	return rdb, nil
 }
