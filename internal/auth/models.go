@@ -1,5 +1,7 @@
 package auth
 
+import "time"
+
 type LoginInput struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8"`
@@ -15,6 +17,10 @@ type User struct {
 	Role     string `json:"role"`
 }
 type Session struct {
+	Id   int
 	Role string
-	id   string
+}
+type Token struct {
+	Key      string
+	ExpireAt time.Duration
 }
