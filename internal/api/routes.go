@@ -29,7 +29,7 @@ func Handler(pool *pgxpool.Pool, cache *redis.Client, logger *slog.Logger, valid
 	**/
 	blogStorage := blog.NewStorage(pool, cache)
 	blogService := blog.NewService(blogStorage)
-	blogHandler := blog.NewHandler(blogService, logger)
+	blogHandler := blog.NewHandler(blogService, logger, validator)
 	mux.HandleFunc("GET /v1/blog/{id}", blogHandler.GetSingleBlog)
 	return middleware.HandlePanic(mux)
 }
