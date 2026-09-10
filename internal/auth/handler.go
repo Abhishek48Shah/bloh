@@ -47,13 +47,26 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if err := h.validate.Struct(input); err != nil {
 		validationErr := make(map[string]string)
 		for _, err := range err.(validator.ValidationErrors) {
+			fmt.Println("tag: ", err.Tag(), "field: ", err.Field(), "actual-field: ", err.ActualTag())
+			fmt.Println("namespace: ", err.Namespace(), "kind: ", err.Kind(), "param: ", err.Param())
+
 			switch err.Field() {
-			case "required":
-				validationErr[err.Field()] = fmt.Sprintf("%s is required,err.Field()")
 			case "Email":
-				validationErr[err.Field()] = fmt.Sprint("email must be valid")
+				switch err.Tag() {
+				case "email":
+					validationErr["email"] = "email must be valid"
+				case "required":
+					validationErr["email"] = "email is required"
+				}
 			case "Password":
-				validationErr[err.Field()] = fmt.Sprint("password must be eight character long or greater")
+				switch err.Tag() {
+				case "required":
+					validationErr["password"] = "password is required"
+				case "min":
+					validationErr["password"] = fmt.Sprintf("password must be %s characters long ", err.Param())
+				case "max":
+					validationErr["password"] = fmt.Sprintf("password must be at most %s characters long", err.Param())
+				}
 			}
 		}
 		util.WriteError(w, r, util.ValidationErr(validationErr), h.logger)
@@ -90,14 +103,32 @@ func (h *AuthHandler) SignupHandler(w http.ResponseWriter, r *http.Request) {
 		validationErr := make(map[string]string)
 		for _, err := range err.(validator.ValidationErrors) {
 			switch err.Field() {
-			case "required":
-				validationErr[err.Field()] = fmt.Sprintf("%s is required,err.Field()")
 			case "Username":
+				switch err.Tag() {
+				case "min":
+				case "required":
+
+					validationErr["password"] = fmt.Sprintf("password must be %s characters long ", err.Param())
+				case "max":
+					validationErr["username"] = fmt.Sprintf("username must be at most %s characters long", err.Param())
+				}
 				validationErr[err.Field()] = fmt.Sprintf("username must be 3 character long or greater")
 			case "Email":
-				validationErr[err.Field()] = fmt.Sprint("email must be valid")
+				switch err.Tag() {
+				case "email":
+					validationErr["email"] = "email must be valid"
+				case "required":
+					validationErr["email"] = "email is required"
+				}
 			case "Password":
-				validationErr[err.Field()] = fmt.Sprint("password must be eight character long or greater")
+				switch err.Tag() {
+				case "required":
+					validationErr["password"] = "password is required"
+				case "min":
+					validationErr["password"] = fmt.Sprintf("password must be %s characters long ", err.Param())
+				case "max":
+					validationErr["password"] = fmt.Sprintf("password must be at most %s characters long", err.Param())
+				}
 			}
 		}
 		util.WriteError(w, r, util.ValidationErr(validationErr), h.logger)
