@@ -2,19 +2,16 @@ package middleware
 
 import (
 	"fmt"
-	"log/slog"
-	"net/http"
-	"os"
-
 	"github.com/Abhishek48Shah/blog/internal/util"
+	"net/http"
 )
 
-func HandlePanic(next http.Handler) http.Handler {
+func (m *Middleware) HandlePanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
 				err := fmt.Errorf("/panic recover: %w", err)
-				util.WriteError(w, r, util.InternalServerErr("something went wrong", err), slog.New(slog.NewTextHandler(os.Stdout, nil)))
+				util.WriteError(w, r, util.InternalServerErr("something went wrong", err), m.logger)
 			}
 		}()
 		next.ServeHTTP(w, r)
