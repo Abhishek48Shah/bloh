@@ -7,14 +7,20 @@ import (
 )
 
 type Database struct {
-	DatabaseURL string
-	MaxConn     int
-	MinConn     int
+	User     string
+	Host     string
+	Port     int
+	Password string
+	DbName   string
+	MaxConn  int
+	MinConn  int
+	SSLMode  string
 }
 type Cache struct {
-	Adder    string
+	Port     int
+	Host     string
+	DbName   int
 	Password string
-	DB       int
 }
 type Config struct {
 	Port        int
@@ -39,11 +45,17 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("port: %w", err)
 	}
-	cfg.Environment, _ = getenv("ENVIRONMENT", "devlopment", parseString)
+	cfg.Db.User, _ = getenv("POSTGRES_USER", "abhishek", parseString)
+	cfg.Db.Password, _ = getenv("POSTGRES_PASSWORD", "abhishek123", parseString)
+	cfg.Db.Host, _ = getenv("POSTGRES_HOST", "localhost", parseString)
+	cfg.Db.DbName, _ = getenv("POSTGRES_DATABASE", "my_db", parseString)
+	cfg.Db.SSLMode, _ = getenv("POSTGRES_SSL_MODE", "disable", parseString)
+
+	cfg.Db.Port, err = getenv("POSTGRES_PORT", 5432, strconv.Atoi)
 	if err != nil {
-		return nil, fmt.Errorf("")
+		return nil, fmt.Errorf("postgres port: %w", err)
 	}
-	cfg.Db.DatabaseURL, _ = getenv("DATABASE_URL", "postgres://abhishek:abhishek123@localhost:5432/my_db?sslmode=disable", parseString)
+	cfg.Environment, _ = getenv("ENVIRONMENT", "devlopment", parseString)
 	cfg.Db.MaxConn, err = getenv("MAX_CONNS", 25, strconv.Atoi)
 	if err != nil {
 		return nil, fmt.Errorf("maxConn: %w", err)
@@ -52,11 +64,15 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("minConn: %w", err)
 	}
-	cfg.Redis.Adder, _ = getenv("CACHE_URL", "localhost:5432", parseString)
-	cfg.Redis.DB, err = getenv("DB", 0, strconv.Atoi)
+	cfg.Redis.Host, _ = getenv("REDIS_HOST", "localhost", parseString)
+	cfg.Redis.Password, _ = getenv("REDIS_PASSWORD", "", parseString)
+	cfg.Redis.Port, err = getenv("REDIS_PORT", 6379, strconv.Atoi)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("redis port: %w", err)
 	}
-	cfg.Redis.Password, _ = getenv("PASSWORD", "", parseString)
+	cfg.Redis.DbName, err = getenv("REDIS_DATABASE", 0, strconv.Atoi)
+	if err != nil {
+		return nil, fmt.Errorf("redis db: %w", err)
+	}
 	return &cfg, nil
 }
