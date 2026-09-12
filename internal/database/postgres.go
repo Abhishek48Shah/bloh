@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/Abhishek48Shah/blog/internal/config"
@@ -9,7 +10,9 @@ import (
 )
 
 func Postgres(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, error) {
-	config, err := pgxpool.ParseConfig(cfg.Db.DatabaseURL)
+	//postgres:://user/password@host:port/dbname?mode
+	URL := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s", cfg.Db.User, cfg.Db.Password, cfg.Db.Host, cfg.Db.Port, cfg.Db.DbName, cfg.Db.SSLMode)
+	config, err := pgxpool.ParseConfig(URL)
 	if err != nil {
 		return nil, err
 	}
