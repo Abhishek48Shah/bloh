@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,10 +11,32 @@ import (
 	"github.com/Abhishek48Shah/blog/internal/api"
 	"github.com/Abhishek48Shah/blog/internal/config"
 	"github.com/Abhishek48Shah/blog/internal/database"
+	"github.com/Abhishek48Shah/blog/internal/middleware"
+	"github.com/Abhishek48Shah/blog/internal/token"
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 )
 
+func loadRSAKeys(cfg *config.Config) (*rsa.PrivateKey, *rsa.PublicKey, error) {
+	bytPrivKey, err := os.ReadFile(cfg.Jwt.PrivateKeyPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	privKey, err := jwt.ParseRSAPrivateKeyFromPEM(bytPrivKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	bytPubKey, err := os.ReadFile(cfg.Jwt.PublicKeyPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	pubKey, err := jwt.ParseRSAPublicKeyFromPEM(bytPubKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	return privKey, pubKey, nil
+}
 func Run() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	err := godotenv.Load()
@@ -37,8 +60,16 @@ func Run() {
 		logger.Error("faile to load redis", "error", err.Error())
 		os.Exit(1)
 	}
+
 	validator := validator.New()
-	server := &http.Server{Addr: fmt.Sprintf(":%d", cfg.Port), Handler: api.Handler(pool, cache, logger, validator)}
+	privKey, pubKey, err := loadRSAKeys(cfg)
+	if err != nil {
+		logger.Error("failed to load RSA keys", "error", err.Error())
+		os.Exit(1)
+	}
+	tokenService := token.NewTokenService(privKey, pubKey, cfg.Jwt.Issuer)
+	middleware := middleware.NewMiddleware(logger, cache, tokenService)
+	server := &http.Server{Addr: fmt.Sprintf(":%d", cfg.Port), Handler: api.Handler(pool, cache, logger, validator, tokenService, middleware)}
 	logger.Info("database connection established", "port", pool.Config().ConnConfig.Port)
 	logger.Info("cache connected", "port", 6397)
 	logger.Info("server running ", "port", server.Addr)
