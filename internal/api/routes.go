@@ -1,24 +1,25 @@
 package api
 
 import (
+	"log/slog"
+	"net/http"
+
 	"github.com/Abhishek48Shah/blog/internal/auth"
 	"github.com/Abhishek48Shah/blog/internal/blog"
 	"github.com/Abhishek48Shah/blog/internal/middleware"
+	"github.com/Abhishek48Shah/blog/internal/token"
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
-	"log/slog"
-	"net/http"
 )
 
-func Handler(pool *pgxpool.Pool, cache *redis.Client, logger *slog.Logger, validator *validator.Validate) http.Handler {
+func Handler(pool *pgxpool.Pool, cache *redis.Client, logger *slog.Logger, validator *validator.Validate, tokenSvc *token.TokenService, middleware *middleware.Middleware) http.Handler {
 	mux := http.NewServeMux()
-	middleware := middleware.NewMiddleware(logger, cache)
 	/**
 	// auth endpoints
 	**/
 	authStorage := auth.NewAuthStorage(pool, cache)
-	authService := auth.NewAuthService(authStorage)
+	authService := auth.NewAuthService(authStorage, tokenSvc)
 	authHandler := auth.NewAuthHandler(authService, logger, validator)
 	mux.HandleFunc("POST /v1/login", authHandler.LoginHandler)
 	mux.HandleFunc("POST /v1/signup", authHandler.SignupHandler)
