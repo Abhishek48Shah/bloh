@@ -22,11 +22,17 @@ type Cache struct {
 	DbName   int
 	Password string
 }
+type JWTConfig struct {
+	PrivateKeyPath string
+	PublicKeyPath  string
+	Issuer         string
+}
 type Config struct {
 	Port        int
 	Environment string
 	Db          Database
 	Redis       Cache
+	Jwt         JWTConfig
 }
 
 func parseString(s string) (string, error) {
@@ -74,5 +80,8 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("redis db: %w", err)
 	}
+	cfg.Jwt.PrivateKeyPath, _ = getenv("PRIVATE_KEY_PATH", "/home/abhishek/buffer/blog/keys/private.pem", parseString)
+	cfg.Jwt.PublicKeyPath, _ = getenv("PUBLIC_KEY_PATH", "/home/abhishek/buffer/blog/keys/public.pem", parseString)
+	cfg.Jwt.Issuer, _ = getenv("ISSUER", "https://mydomain.com", parseString)
 	return &cfg, nil
 }
