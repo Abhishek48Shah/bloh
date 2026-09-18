@@ -31,6 +31,7 @@ func Handler(pool *pgxpool.Pool, cache *redis.Client, logger *slog.Logger, valid
 	blogService := blog.NewService(blogStorage)
 	blogHandler := blog.NewHandler(blogService, logger, validator)
 	mux.HandleFunc("GET /v1/blog/{id}", blogHandler.GetSingleBlog)
-	mux.Handle("POST /v1/blog", middleware.Auth(http.HandlerFunc(blogHandler.CreateBlog)))
-	return middleware.HandlePanic(mux)
+	mux.Handle("POST /v1/blog", middleware.Auth(middleware.RequiredRole("user", http.HandlerFunc(blogHandler.CreateBlog))))
+	mux.Handle("DELETE /v1/blog/{id}", middleware.Auth(middleware.RequiredRole("user", http.HandlerFunc(blogHandler.DeleteBlog))))
+	return middleware.HandlePanic(middleware.HandleCors(mux))
 }
