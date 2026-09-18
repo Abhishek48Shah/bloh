@@ -44,7 +44,20 @@ func (t *TokenService) GenerateNewToken() (*IssuedToken, error) {
 	}
 	return &IssuedToken{JWT: token, ExpireAt: expiresAt, Key: key}, nil
 }
-func (t *TokenService) VerifyToken() error {
 
-	return nil
+func (t *TokenService) VerifyToken(token string) (*jwt.RegisteredClaims, error) {
+	claims := &jwt.RegisteredClaims{}
+	parsedToken, err := jwt.ParseWithClaims(token, claims, func(tn *jwt.Token) (any, error) {
+		if _, ok := tn.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method %s", tn.Method)
+		}
+		return t.publicKey, nil
+	}, jwt.WithIssuer(t.issuer), jwt.WithExpirationRequired())
+	if err != nil {
+		return nil, fmt.Errorf("parse claims: %w", err)
+	}
+	if !parsedToken.Valid {
+		return nil, fmt.Errorf("invalid token")
+	}
+	return claims, nil
 }
