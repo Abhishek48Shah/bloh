@@ -44,32 +44,8 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteError(w, r, util.BadRequestErr(err.Error(), err), h.logger)
 		return
 	}
-	if err := h.validate.Struct(input); err != nil {
-		validationErr := make(map[string]string)
-		for _, err := range err.(validator.ValidationErrors) {
-			fmt.Println("tag: ", err.Tag(), "field: ", err.Field(), "actual-field: ", err.ActualTag())
-			fmt.Println("namespace: ", err.Namespace(), "kind: ", err.Kind(), "param: ", err.Param())
-
-			switch err.Field() {
-			case "Email":
-				switch err.Tag() {
-				case "email":
-					validationErr["email"] = "email must be valid"
-				case "required":
-					validationErr["email"] = "email is required"
-				}
-			case "Password":
-				switch err.Tag() {
-				case "required":
-					validationErr["password"] = "password is required"
-				case "min":
-					validationErr["password"] = fmt.Sprintf("password must be %s characters long ", err.Param())
-				case "max":
-					validationErr["password"] = fmt.Sprintf("password must be at most %s characters long", err.Param())
-				}
-			}
-		}
-		util.WriteError(w, r, util.ValidationErr(validationErr), h.logger)
+	if err := validateForm(h.validate, input); err != nil {
+		util.WriteError(w, r, err, h.logger)
 		return
 	}
 	session, err := h.service.GetByEmail(r.Context(), &input)
@@ -77,7 +53,7 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteError(w, r, err, h.logger)
 		return
 	}
-	cookie := &http.Cookie{Name: "session", Value: session.Key, MaxAge: int(session.ExpireAt.Seconds())}
+	cookie := &http.Cookie{Name: "session", Value: session.JWT, Expires: session.ExpireAt}
 	http.SetCookie(w, cookie)
 	if err := util.WriteJson(w, "login successfull", http.StatusAccepted, nil); err != nil {
 		util.WriteError(w, r, util.InternalServerErr("internal server error", err), h.logger)
@@ -96,49 +72,19 @@ func (h *AuthHandler) SignupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var input SignupInput
 	if err := util.ReadJSON(w, r, SignupMaxBodySize, &input); err != nil {
-		util.WriteError(w, r, util.BadRequestErr(err.Error(), err), h.logger)
+		util.WriteError(w, r, util.BadRequestErr(err.Error(), fmt.Errorf("read json: %w", err)), h.logger)
 		return
 	}
-	if err := h.validate.Struct(input); err != nil {
-		validationErr := make(map[string]string)
-		for _, err := range err.(validator.ValidationErrors) {
-			switch err.Field() {
-			case "Username":
-				switch err.Tag() {
-				case "min":
-				case "required":
-
-					validationErr["password"] = fmt.Sprintf("password must be %s characters long ", err.Param())
-				case "max":
-					validationErr["username"] = fmt.Sprintf("username must be at most %s characters long", err.Param())
-				}
-				validationErr[err.Field()] = fmt.Sprintf("username must be 3 character long or greater")
-			case "Email":
-				switch err.Tag() {
-				case "email":
-					validationErr["email"] = "email must be valid"
-				case "required":
-					validationErr["email"] = "email is required"
-				}
-			case "Password":
-				switch err.Tag() {
-				case "required":
-					validationErr["password"] = "password is required"
-				case "min":
-					validationErr["password"] = fmt.Sprintf("password must be %s characters long ", err.Param())
-				case "max":
-					validationErr["password"] = fmt.Sprintf("password must be at most %s characters long", err.Param())
-				}
-			}
-		}
-		util.WriteError(w, r, util.ValidationErr(validationErr), h.logger)
+	if err := validateForm(h.validate, input); err != nil {
+		util.WriteError(w, r, err, h.logger)
 		return
 	}
 	session, err := h.service.Register(r.Context(), &input)
 	if err != nil {
 		util.WriteError(w, r, err, h.logger)
+		return
 	}
-	cookie := &http.Cookie{Name: "session", Value: session.Key, MaxAge: int(session.ExpireAt.Seconds())}
+	cookie := &http.Cookie{Name: "session", Value: session.JWT, Expires: session.ExpireAt}
 	http.SetCookie(w, cookie)
 	if err := util.WriteJson(w, "account register successfully", http.StatusAccepted, nil); err != nil {
 		util.WriteError(w, r, util.InternalServerErr("internal server error", err), h.logger)
