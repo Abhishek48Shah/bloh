@@ -14,5 +14,5 @@ type Middleware struct {
 }
 
 func NewMiddleware(logger *slog.Logger, cache *redis.Client, tokenSrv *token.TokenService) *Middleware {
-	return &Middleware{logger: logger, cache: cache}
+	return &Middleware{logger: logger, cache: cache, tokenSrv: tokenSrv}
 }
