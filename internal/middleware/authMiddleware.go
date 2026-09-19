@@ -8,12 +8,16 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Abhishek48Shah/blog/internal/auth"
 	"github.com/Abhishek48Shah/blog/internal/util"
 	"github.com/redis/go-redis/v9"
 )
 
 type contextKey string
+type Payload struct {
+	ID   int    `json:"id"`
+	Role string `json:"role"`
+	Key  string `json:"-"`
+}
 
 var sessionKey contextKey = "session"
 
@@ -32,10 +36,22 @@ func (m *Middleware) Auth(next http.Handler) http.Handler {
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
-		var session auth.Session
+		var payload Payload
 		data, err := m.cache.Get(ctx, token.ID).Bytes()
-		if err := json.Unmarshal(data, &session); err != nil {
-			util.WriteError(w, r, util.InternalServerErr("internal server error", fmt.Errorf("session parsing: %w", err)), m.logger)
+		if err != nil {
+			fmt.Println(err)
+			switch {
+			case errors.Is(err, redis.Nil):
+				util.WriteError(w, r, util.UnauthorizedErr("unauthorized access", fmt.Errorf("key doesn't exist", err)), m.logger)
+			case errors.Is(err, redis.ErrPoolTimeout), errors.Is(err, context.DeadlineExceeded):
+				util.WriteError(w, r, util.TimeoutErr("request time out.", err), m.logger)
+			default:
+				util.WriteError(w, r, util.InternalServerErr("internal server error", err), m.logger)
+			}
+			return
+		}
+		if err := json.Unmarshal(data, &payload); err != nil {
+			util.WriteError(w, r, util.InternalServerErr("internal server error", fmt.Errorf("unmarshal session: %w", err)), m.logger)
 			return
 		}
 		if err != nil {
@@ -50,12 +66,13 @@ func (m *Middleware) Auth(next http.Handler) http.Handler {
 			}
 			return
 		}
-		ctx = context.WithValue(r.Context(), sessionKey, session)
+		payload.Key = token.ID
+		ctx = context.WithValue(r.Context(), sessionKey, payload)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})
 }
-func GetUserSession(r *http.Request) *auth.Session {
-	session := r.Context().Value(sessionKey).(auth.Session)
-	return &session
+func GetUserContext(r *http.Request) *Payload {
+	payload := r.Context().Value(sessionKey).(Payload)
+	return &payload
 }
