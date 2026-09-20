@@ -69,7 +69,7 @@ func Run() {
 	}
 	tokenService := token.NewTokenService(privKey, pubKey, cfg.Jwt.Issuer)
 	middleware := middleware.NewMiddleware(logger, cache, tokenService)
-	server := &http.Server{Addr: fmt.Sprintf(":%d", cfg.Port), Handler: api.Handler(pool, cache, logger, validator, tokenService, middleware)}
+	server := &http.Server{Addr: fmt.Sprintf(":%d", cfg.Port), Handler: api.Handler(pool, cache, logger, validator, tokenService, middleware), ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError)}
 	logger.Info("database connection established", "port", pool.Config().ConnConfig.Port)
 	logger.Info("cache connected", "port", 6397)
 	logger.Info("server running ", "port", server.Addr)
