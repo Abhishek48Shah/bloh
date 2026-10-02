@@ -21,7 +21,6 @@ type envelope map[string]any
 
 func WriteError(w http.ResponseWriter, r *http.Request, err error, logger *slog.Logger) {
 	var apiErr *ApiError
-	logger.Error("")
 	if errors.As(err, &apiErr) {
 		logger.Error("api", "error", apiErr.err, "method", r.Method, "uri", r.RequestURI)
 		env := envelope{"error": apiErr.message}
@@ -46,13 +45,18 @@ func NotFounErr(message string, err error) *ApiError {
 	return &ApiError{status: http.StatusNotFound, message: message, err: err}
 }
 func ValidationErr(message map[string]string) *ApiError {
-	fmt.Println(message)
 	return &ApiError{status: http.StatusUnprocessableEntity, message: message, err: nil}
 }
 func UnsupportedMediaTypeErr(message string, err error) *ApiError {
 
-	return &ApiError{status: http.StatusUnsupportedMediaType, message: message, err: nil}
+	return &ApiError{status: http.StatusUnsupportedMediaType, message: message, err: err}
 }
 func UnauthorizedErr(message string, err error) *ApiError {
 	return &ApiError{status: http.StatusUnauthorized, message: message, err: err}
+}
+func ConflictErr(message string, err error) *ApiError {
+	return &ApiError{status: http.StatusConflict, message: message, err: err}
+}
+func ForbiddenErr(message string, err error) *ApiError {
+	return &ApiError{status: http.StatusForbidden, message: message, err: err}
 }
