@@ -7,6 +7,7 @@ import (
 	"mime"
 	"net/http"
 
+	"github.com/Abhishek48Shah/blog/internal/middleware"
 	"github.com/Abhishek48Shah/blog/internal/util"
 	"github.com/go-playground/validator/v10"
 )
@@ -88,6 +89,21 @@ func (h *AuthHandler) SignupHandler(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, cookie)
 	if err := util.WriteJson(w, "account register successfully", http.StatusAccepted, nil); err != nil {
 		util.WriteError(w, r, util.InternalServerErr("internal server error", err), h.logger)
+		return
+	}
+}
+func (h *AuthHandler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	payload := middleware.GetUserContext(r)
+	err := h.service.Logout(r.Context(), payload.Key)
+	if err != nil {
+		util.WriteError(w, r, err, h.logger)
+		return
+	}
+
+	cookie := &http.Cookie{Name: "session", Value: "", MaxAge: -1}
+	http.SetCookie(w, cookie)
+	if err := util.WriteJson(w, "logout successfully", http.StatusNoContent, nil); err != nil {
+		util.WriteError(w, r, util.InternalServerErr("internal server error", fmt.Errorf("write json: %w", err)), h.logger)
 		return
 	}
 }
