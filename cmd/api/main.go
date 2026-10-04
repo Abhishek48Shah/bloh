@@ -1,7 +1,7 @@
 package main
 
-import "github.com/Abhishek48Shah/blog/internal"
+import "github.com/Abhishek48Shah/blog/internal/app"
 
 func main() {
-	internal.Run()
+	app.Run()
 }
