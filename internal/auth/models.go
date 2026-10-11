@@ -1,10 +1,11 @@
 package auth
 
 import (
+	"encoding/json"
 	"fmt"
+
 	"github.com/Abhishek48Shah/blog/internal/util"
 	"github.com/go-playground/validator/v10"
-	"time"
 )
 
 type LoginInput struct {
@@ -22,12 +23,8 @@ type User struct {
 	Role     string `json:"role"`
 }
 type Session struct {
-	Id   int
-	Role string
-}
-type Token struct {
-	Key      string
-	ExpireAt time.Duration
+	Id   int    `redis:"id"`
+	Role string `redis:"role"`
 }
 
 func validateForm(validate *validator.Validate, inputs any) error {
@@ -41,7 +38,7 @@ func validateForm(validate *validator.Validate, inputs any) error {
 					validationErr["username"] = fmt.Sprintf("username must be %s characters long ", err.Param())
 				case "required":
 
-					validationErr["username"] = fmt.Sprintf("password must be %s characters long ", err.Param())
+					validationErr["username"] = fmt.Sprintf("user name is required ", err.Param())
 				case "max":
 					validationErr["username"] = fmt.Sprintf("username must be at most %s characters long", err.Param())
 				}
@@ -68,4 +65,7 @@ func validateForm(validate *validator.Validate, inputs any) error {
 		return util.ValidationErr(validationErr)
 	}
 	return nil
+}
+func marshalSessios(session *Session) ([]byte, error) {
+	return json.Marshal(session)
 }
