@@ -3,10 +3,14 @@ package app
 import (
 	"context"
 	"crypto/rsa"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/Abhishek48Shah/blog/internal/api"
 	"github.com/Abhishek48Shah/blog/internal/config"
@@ -55,12 +59,13 @@ func Run() {
 		logger.Error("failed to load postgres pool", "error", err.Error())
 		os.Exit(1)
 	}
+	logger.Info("database connection established", "port", pool.Config().ConnConfig.Port)
 	cache, err := database.Redis(ctx, cfg)
 	if err != nil {
 		logger.Error("faile to load redis", "error", err.Error())
 		os.Exit(1)
 	}
-
+	logger.Info("cache connected", "port", 6397)
 	validator := validator.New()
 	privKey, pubKey, err := loadRSAKeys(cfg)
 	if err != nil {
@@ -70,12 +75,32 @@ func Run() {
 	tokenService := token.NewTokenService(privKey, pubKey, cfg.Jwt.Issuer)
 	middleware := middleware.NewMiddleware(logger, cache, tokenService)
 	server := &http.Server{Addr: fmt.Sprintf(":%d", cfg.Port), Handler: api.Handler(pool, cache, logger, validator, tokenService, middleware), ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError)}
-	logger.Info("database connection established", "port", pool.Config().ConnConfig.Port)
-	logger.Info("cache connected", "port", 6397)
-	logger.Info("server running ", "port", server.Addr)
-	err = server.ListenAndServe()
-	logger.Error("failed to run server", "error", err)
+	serverErr := make(chan error, 1)
+	go func() {
+		logger.Info("server running ", "port", server.Addr)
+		serverErr <- server.ListenAndServe()
+	}()
+	signalCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	select {
+	case <-signalCtx.Done():
+		logger.Warn("shutdown signal recived")
+	case err := <-serverErr:
+		if !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("server error", "msg", err)
+		}
+		return
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		logger.Warn("gracefull shutdown failed", "error", err)
+		if err := server.Close(); err != nil {
+			logger.Warn("forced shutdown failed", "error", err)
+		}
+	}
+	logger.Warn("server stopping")
 	defer pool.Close()
 	defer cache.Close()
-	os.Exit(1)
 }
