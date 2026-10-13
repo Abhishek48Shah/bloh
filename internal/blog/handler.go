@@ -30,9 +30,19 @@ var maxBodySize int64 = 2097152
 
 func (h *Handler) GetUserBlogsHandler(w http.ResponseWriter, r *http.Request) {
 	payload := middleware.GetUserContext(r)
-	_, err := h.service.GetUserBlogs(r.Context(), payload.ID)
+	blogs, err := h.service.GetUserBlogs(r.Context(), payload.ID)
 	if err != nil {
-
+		switch {
+		default:
+			util.WriteError(w, r, util.InternalServerErr("internal server error", err), h.logger)
+		}
+		return
+	}
+	// var header http.Header
+	// header.Set("Cache-Controle")
+	if err := util.WriteJson(w, blogs, http.StatusOK, nil); err != nil {
+		util.WriteError(w, r, util.InternalServerErr("something went wrong", err), h.logger)
+		return
 	}
 }
 func (h *Handler) GetSingleBlogHandler(w http.ResponseWriter, r *http.Request) {
