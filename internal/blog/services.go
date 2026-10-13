@@ -14,6 +14,9 @@ func NewService(storage *Storage) *Service {
 func (s *Service) GetBlogById(ctx context.Context, id int) (*Blog, error) {
 	return s.storage.FindBlogById(ctx, id)
 }
+func (s *Service) GetUserBlogs(ctx context.Context, id int) (*Blog, error) {
+	return s.storage.FindUserBlogs(ctx, id)
+}
 func (s *Service) CreateBlog(ctx context.Context, blog *CreateBlogInput, userID int) error {
 	return s.storage.CreateBlog(ctx, blog, userID)
 }
