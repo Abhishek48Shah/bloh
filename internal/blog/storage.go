@@ -25,11 +25,15 @@ var (
 func NewStorage(pool *pgxpool.Pool, cache *redis.Client) *Storage {
 	return &Storage{pool: pool, cache: cache}
 }
+func (s *Storage) FindUserBlogs(ctx context.Context, id int) (*Blog, error) {
+	var blog Blog
+	return &blog, nil
+}
 func (s *Storage) FindBlogById(ctx context.Context, blogID int) (*Blog, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	query := `SELECT blog_id,title,content,created_at,updated_at FROM blogs WHERE blog_id=$1`
-	var blog *Blog
+	var blog Blog
 	err := s.pool.QueryRow(ctx, query, blogID).Scan(&blog.Id, &blog.Title, &blog.Content, &blog.CreatedAt, &blog.UpdatedAt)
 	if err != nil {
 		switch {
@@ -43,7 +47,7 @@ func (s *Storage) FindBlogById(ctx context.Context, blogID int) (*Blog, error) {
 			return nil, fmt.Errorf("find blog %d: %w", blogID, err)
 		}
 	}
-	return blog, nil
+	return &blog, nil
 }
 func (s *Storage) CreateBlog(ctx context.Context, blog *CreateBlogInput, userID int) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
