@@ -6,6 +6,7 @@ import (
 
 	"github.com/Abhishek48Shah/blog/internal/auth"
 	"github.com/Abhishek48Shah/blog/internal/blog"
+	"github.com/Abhishek48Shah/blog/internal/config"
 	"github.com/Abhishek48Shah/blog/internal/middleware"
 	"github.com/Abhishek48Shah/blog/internal/token"
 	"github.com/go-playground/validator/v10"
@@ -13,7 +14,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func Handler(pool *pgxpool.Pool, cache *redis.Client, logger *slog.Logger, validator *validator.Validate, tokenSvc *token.TokenService, middleware *middleware.Middleware) http.Handler {
+func Handler(pool *pgxpool.Pool, cache *redis.Client, logger *slog.Logger, validator *validator.Validate, tokenSvc *token.TokenService, middleware *middleware.Middleware, cfg *config.Config) http.Handler {
 	mux := http.NewServeMux()
 	/**
 	// auth endpoints
@@ -30,12 +31,18 @@ func Handler(pool *pgxpool.Pool, cache *redis.Client, logger *slog.Logger, valid
 	**/
 	blogStorage := blog.NewStorage(pool, cache)
 	blogService := blog.NewService(blogStorage)
-	blogHandler := blog.NewHandler(blogService, logger, validator)
+	blogHandler := blog.NewHandler(blogService, logger, validator, cfg)
+	/**
+	//public endpoints
+	**/
 	mux.HandleFunc("GET /v1/blog/{id}", blogHandler.GetSingleBlogHandler)
-	// mux.HandleFunc("GET /v1/blog", middleware.Auth(middleware.RequiredRole("user", http.HandlerFunc(blogHandler.GetUserBlogsHandler))))
+	/**
+	//private endpoints
+	**/
 	mux.Handle("POST /v1/blog", middleware.Auth(middleware.RequiredRole("user", http.HandlerFunc(blogHandler.CreateBlogHandler))))
 	mux.Handle("DELETE /v1/blog/{id}", middleware.Auth(middleware.RequiredRole("user", http.HandlerFunc(blogHandler.DeleteBlogHandler))))
 	mux.Handle("PATCH /v1/blog/{id}", middleware.Auth(middleware.RequiredRole("user", http.HandlerFunc(blogHandler.EditBlogHandler))))
+	mux.Handle("GET /v1/blog", middleware.Auth(middleware.RequiredRole("user", http.HandlerFunc(blogHandler.GetUserBlogsHandler))))
 	/**
 	//
 	**/
