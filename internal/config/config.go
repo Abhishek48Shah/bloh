@@ -30,6 +30,7 @@ type JWTConfig struct {
 type Config struct {
 	Port        int
 	Environment string
+	HamcSecret  []byte
 	Db          Database
 	Redis       Cache
 	Jwt         JWTConfig
@@ -51,6 +52,8 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("port: %w", err)
 	}
+	secret, _ := getenv("HAMC_SECRET", "never_mind", parseString)
+	cfg.HamcSecret = []byte(secret)
 	cfg.Db.User, _ = getenv("POSTGRES_USER", "abhishek", parseString)
 	cfg.Db.Password, _ = getenv("POSTGRES_PASSWORD", "abhishek123", parseString)
 	cfg.Db.Host, _ = getenv("POSTGRES_HOST", "localhost", parseString)
