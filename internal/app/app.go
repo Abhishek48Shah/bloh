@@ -16,6 +16,7 @@ import (
 	"github.com/Abhishek48Shah/blog/internal/config"
 	"github.com/Abhishek48Shah/blog/internal/database"
 	"github.com/Abhishek48Shah/blog/internal/middleware"
+	"github.com/Abhishek48Shah/blog/internal/pagination"
 	"github.com/Abhishek48Shah/blog/internal/token"
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
@@ -73,8 +74,10 @@ func Run() {
 		os.Exit(1)
 	}
 	tokenService := token.NewTokenService(privKey, pubKey, cfg.Jwt.Issuer)
+	codec := pagination.NewCodec(cfg.HamcSecret)
 	middleware := middleware.NewMiddleware(logger, cache, tokenService)
-	server := &http.Server{Addr: fmt.Sprintf(":%d", cfg.Port), Handler: api.Handler(pool, cache, logger, validator, tokenService, middleware), ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError)}
+	newRoute := api.NewRoutes(pool, cache, logger, validator, tokenService, middleware, codec)
+	server := &http.Server{Addr: fmt.Sprintf(":%d", cfg.Port), Handler: newRoute.Handler(), ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError)}
 	serverErr := make(chan error, 1)
 	go func() {
 		logger.Info("server running ", "port", server.Addr)
