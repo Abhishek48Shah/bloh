@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/Abhishek48Shah/blog/internal/middleware"
+	"github.com/Abhishek48Shah/blog/internal/pagination"
 	"github.com/Abhishek48Shah/blog/internal/util"
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgerrcode"
@@ -20,27 +21,41 @@ type Handler struct {
 	service  *Service
 	logger   *slog.Logger
 	validate *validator.Validate
+	codec    *pagination.Codec
 }
 
-func NewHandler(service *Service, logger *slog.Logger, validate *validator.Validate) *Handler {
-	return &Handler{service: service, logger: logger, validate: validate}
-}
+const maxBodySize int64 = 2097152
 
-var maxBodySize int64 = 2097152
+func NewHandler(service *Service, logger *slog.Logger, validate *validator.Validate, codec *pagination.Codec) *Handler {
+	return &Handler{service: service, logger: logger, validate: validate, codec: codec}
+}
 
 func (h *Handler) GetUserBlogsHandler(w http.ResponseWriter, r *http.Request) {
-	payload := middleware.GetUserContext(r)
-	blogs, err := h.service.GetUserBlogs(r.Context(), payload.ID)
+	cursor := r.URL.Query().Get("cursor")
+	payload, err := h.codec.Decode(cursor)
+	if err != nil {
+		util.WriteError(w, r, util.BadRequestErr("invalid pagination cursor", err), h.logger)
+		return
+	}
+	// userCtx := middleware.GetUserContext(r)
+	blogPage, err := h.service.GetUserBlogs(r.Context(), 1, payload)
 	if err != nil {
 		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			util.WriteError(w, r, util.TimeoutErr("request timeout", fmt.Errorf("get user blogs: %v", err)), h.logger)
+		case errors.Is(err, context.Canceled):
+			return
 		default:
 			util.WriteError(w, r, util.InternalServerErr("internal server error", err), h.logger)
 		}
 		return
 	}
-	// var header http.Header
-	// header.Set("Cache-Controle")
-	if err := util.WriteJson(w, blogs, http.StatusOK, nil); err != nil {
+	nextCursor, err := h.codec.Encode(blogPage.NextCursor)
+	if err != nil {
+		util.WriteError(w, r, util.InternalServerErr("something went wrong", fmt.Errorf("codec encode: %v", err)), h.logger)
+		return
+	}
+	if err := util.WriteJson(w, ListBlogsResponse{Blogs: blogPage.Blogs, NextCursor: nextCursor}, http.StatusOK, nil); err != nil {
 		util.WriteError(w, r, util.InternalServerErr("something went wrong", err), h.logger)
 		return
 	}
